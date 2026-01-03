@@ -1,18 +1,18 @@
 import nodemailer from "nodemailer"
 
-const transporter = nodemailer.createTransport({
+const transporter = process.env.EMAIL_SERVER_USER ? nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.EMAIL_SERVER_USER,
     pass: process.env.EMAIL_SERVER_PASSWORD,
   },
-})
+}) : null
 
-// 接続テスト
-if (process.env.NODE_ENV !== "test") {
+// 接続テスト (エラーでプロセスを止めないように監視のみ)
+if (transporter && process.env.NODE_ENV !== "test") {
   transporter.verify((error, success) => {
     if (error) {
-      console.error("SMTP_CONNECTION_ERROR:", error);
+      console.warn("SMTP_CONNECTION_WARNING (Skipping email functionality):", error.message);
     } else {
       console.log("SMTP_SERVER_READY (Gmail)");
     }
@@ -40,22 +40,23 @@ export async function sendRegistrationEmail(to: string, url: string) {
     `,
   }
 
-  if (process.env.NODE_ENV === "development" && !process.env.EMAIL_SERVER_USER) {
-    console.log("--- EMAIL SEND SKIP (Development Mode) ---")
+  // 設定がない場合や本番環境でも接続エラーが想定される場合はスキップ
+  if (!transporter || !process.env.EMAIL_SERVER_USER) {
+    console.log("--- EMAIL SEND SKIP (No Credentials or Transporter) ---")
     console.log("To:", to)
     console.log("URL:", url)
     console.log("------------------------------------------")
-    return
+    return { skipped: true }
   }
 
   console.log(`Attempting to send email to: ${to}...`);
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log("EMAIL_SENT_SUCCESS:", info.messageId);
-    console.log("PREVIEW_URL:", nodemailer.getTestMessageUrl(info));
     return info;
   } catch (error: any) {
-    console.error("EMAIL_SEND_ERROR_IN_SERVICE:", error.message);
-    throw error;
+    // メール送信エラーでシステム全体を止めないよう、エラーをスローせずログのみ出力
+    console.error("EMAIL_SEND_ERROR_IN_SERVICE (Non-fatal):", error.message);
+    return { error: error.message };
   }
 }
