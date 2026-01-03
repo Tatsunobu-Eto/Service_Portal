@@ -1,4 +1,4 @@
-import { promoteToSystemAdmin } from "./serverside/services/permissionService";
+import { promoteToSystemAdmin } from "./serverside/services/permission/requestService";
 
 const email = process.argv[2];
 

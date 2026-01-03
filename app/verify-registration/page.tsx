@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useState, useTransition, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { verifyRegistrationToken } from "@/serverside/services/auth/registrationService"
+import { handleVerifyToken } from "@/frontend/actions/permissionActions"
 import Link from "next/link"
 
-export default function VerifyRegistrationPage() {
+function VerifyRegistrationContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [status, setStatus] = useState<"verifying" | "success" | "error">("verifying")
@@ -22,14 +22,13 @@ export default function VerifyRegistrationPage() {
 
     const verify = async () => {
       try {
-        // verifyRegistrationToken は "use server" ではないが、
-        // クライアント側から呼べるのは Server Actions のみ。
-        // ここでエラーが起きる可能性があるため、本来は Action を経由すべき。
-        // 一旦現状の構成（Client Component 内での呼び出し）を維持しつつパスのみ修正。
-        // ※実際には permissionActions.ts に Action を作るのが正解。
-        await verifyRegistrationToken(token)
-        setStatus("success")
-        setMessage("アカウントの本登録が完了しました！")
+        const result = await handleVerifyToken(token)
+        if (result.success) {
+          setStatus("success")
+          setMessage("アカウントの本登録が完了しました！")
+        } else {
+          throw new Error(result.error)
+        }
       } catch (error: any) {
         setStatus("error")
         setMessage(error.message || "トークンの検証に失敗しました。期限切れの可能性があります。")
@@ -91,5 +90,23 @@ export default function VerifyRegistrationPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function VerifyRegistrationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl border border-gray-100 text-center">
+          <div className="mb-8 flex justify-center">
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <h1 className="text-2xl font-black mb-4 text-gray-900">準備中</h1>
+          <p className="text-gray-500 mb-10 leading-relaxed font-medium">読み込んでいます...</p>
+        </div>
+      </div>
+    }>
+      <VerifyRegistrationContent />
+    </Suspense>
   )
 }
