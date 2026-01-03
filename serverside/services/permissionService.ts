@@ -1,5 +1,6 @@
 import { prisma } from "@/serverside/db/prisma";
 import {
+  DepartmentWithChildren,
   PermissionRequestWithDetails,
   RegistrationApprovalResult,
   UserPermissionInfo,
@@ -87,6 +88,24 @@ export async function getAllRoles(): Promise<Role[]> {
   });
 }
 
+/**
+ * 階層構造を持った全部署を取得します。
+ */
+export async function getDepartmentTree(): Promise<DepartmentWithChildren[]> {
+  const allDepartments = await prisma.department.findMany();
+
+  const buildTree = (parentId: string | null): DepartmentWithChildren[] => {
+    return allDepartments
+      .filter((dept) => dept.parentId === parentId)
+      .map((dept) => ({
+        ...dept,
+        children: buildTree(dept.id),
+      }));
+  };
+
+  return buildTree(null);
+}
+
 // --- 権限申請フロー ---
 
 /**
@@ -95,13 +114,15 @@ export async function getAllRoles(): Promise<Role[]> {
 export async function createPermissionRequest(
   userId: string,
   serviceId: string,
-  roleId: string
+  roleId: string,
+  departmentId?: string
 ) {
   return await prisma.permissionRequest.create({
     data: {
       userId,
       serviceId,
       roleId,
+      departmentId,
       status: "PENDING",
     },
   });
@@ -117,9 +138,10 @@ export async function getPendingRequests(): Promise<PermissionRequestWithDetails
       user: true,
       service: true,
       role: true,
+      department: true,
     },
     orderBy: { createdAt: "desc" },
-  })) as PermissionRequestWithDetails[];
+  })) as unknown as PermissionRequestWithDetails[];
 }
 
 /**
@@ -134,6 +156,7 @@ export async function getUserPendingRequests(userId: string) {
     include: {
       service: true,
       role: true,
+      department: true,
     },
   });
 }
@@ -166,11 +189,13 @@ export async function approveRequest(requestId: string) {
       },
       update: {
         roleId: request.roleId,
+        departmentId: request.departmentId,
       },
       create: {
         userId: request.userId,
         serviceId: request.serviceId,
         roleId: request.roleId,
+        departmentId: request.departmentId,
       },
     });
   });
@@ -365,11 +390,12 @@ export async function getAllUsers(): Promise<UserWithPermissions[]> {
         include: {
           service: true,
           role: true,
+          department: true,
         },
       },
     },
     orderBy: { email: "asc" },
-  })) as UserWithPermissions[];
+  })) as unknown as UserWithPermissions[];
 }
 
 /**

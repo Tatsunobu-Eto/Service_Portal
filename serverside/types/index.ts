@@ -1,4 +1,4 @@
-import { User, Service, Role, UserPermission, PermissionRequest, RegistrationRequest } from "@prisma/client";
+import { User, Service, Role, UserPermission, PermissionRequest, RegistrationRequest, Department } from "@prisma/client";
 
 /**
  * ユーザー権限情報の型定義
@@ -26,6 +26,7 @@ export interface PermissionRequestWithDetails extends PermissionRequest {
   user: User;
   service: Service;
   role: Role;
+  department?: Department | null;
 }
 
 /**
@@ -35,6 +36,7 @@ export interface UserWithPermissions extends User {
   permissions: (UserPermission & {
     service: Service;
     role: Role;
+    department?: Department | null;
   })[];
 }
 
@@ -46,3 +48,10 @@ export interface RegistrationApprovalResult {
   email: string;
   error?: string;
 }
+
+/**
+ * 階層構造を持つ部署の型定義
+ */
+export type DepartmentWithChildren = Department & {
+  children?: DepartmentWithChildren[];
+};

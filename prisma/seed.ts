@@ -1,36 +1,64 @@
-import { prisma } from "@/serverside/db/prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 async function main() {
-  // Roles
-  const roles = [
-    { name: "一般" },
-    { name: "管理者" },
-    { name: "システム管理者" },
-  ];
+  console.log("Seeding departments...");
 
-  for (const role of roles) {
-    await prisma.role.upsert({
-      where: { name: role.name },
-      update: {},
-      create: role,
+  // 既存の部署を削除
+  await prisma.department.deleteMany();
+
+  const businessUnits = ["営業本部", "技術本部", "管理本部", "製造本部", "海外事業本部"];
+  
+  for (const buName of businessUnits) {
+    const bu = await prisma.department.create({
+      data: { name: buName },
     });
+
+    // 各本部に3つの部を作成
+    for (let i = 1; i <= 3; i++) {
+      const deptName = `${buName} 第${i}部`;
+      const dept = await prisma.department.create({
+        data: { 
+          name: deptName,
+          parentId: bu.id 
+        },
+      });
+
+      // 各部にさらに複数の課を作成 (合計100以上にするため調整)
+      // 5本部 * 3部 * 7課 = 105部署
+      for (let j = 1; j <= 7; j++) {
+        const sectionName = `${deptName} 第${j}課`;
+        await prisma.department.create({
+          data: {
+            name: sectionName,
+            parentId: dept.id
+          }
+        });
+      }
+    }
   }
 
-  // Services
-  const services = [
-    { name: "在庫管理", description: "商品の在庫状況を管理するサービスです。" },
-    { name: "社員人事情報", description: "社員の基本情報や配属先を管理するサービスです。" },
-  ];
+  console.log("Departments seeded successfully.");
 
-  for (const service of services) {
+  // サービスとロールの初期データ（未登録の場合のみ）
+  const services = ["在庫管理システム", "人事評価システム", "経費精算システム"];
+  for (const name of services) {
     await prisma.service.upsert({
-      where: { name: service.name },
+      where: { name },
       update: {},
-      create: service,
+      create: { name, description: `${name}の利用権限` },
     });
   }
 
-  console.log("Seed data created successfully.");
+  const roles = ["一般", "管理者", "システム管理者"];
+  for (const name of roles) {
+    await prisma.role.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
 }
 
 main()

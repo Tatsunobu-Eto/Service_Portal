@@ -69,11 +69,18 @@ erDiagram
         String name UK
     }
 
+    Department {
+        String id PK
+        String name
+        String parentId FK
+    }
+
     UserPermission {
         String id PK
         String userId FK
         String serviceId FK
         String roleId FK
+        String departmentId FK
     }
 
     PermissionRequest {
@@ -81,10 +88,13 @@ erDiagram
         String userId FK
         String serviceId FK
         String roleId FK
+        String departmentId FK
         String status "PENDING, APPROVED, REJECTED"
         DateTime createdAt
         DateTime updatedAt
     }
+>>>>+++ REPLACE
+
 
     VerificationToken {
         String identifier
