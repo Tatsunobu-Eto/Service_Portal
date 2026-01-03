@@ -1,6 +1,7 @@
 # Google Auth Sample (Next.js + Tailwind CSS)
 
 Next.js (App Router), NextAuth.js (v5), Tailwind CSS を使用した Google 認証のサンプルアプリケーションです。
+(Vercel Trigger)
 
 ## 機能
 
