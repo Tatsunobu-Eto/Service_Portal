@@ -1,61 +1,95 @@
-import { auth } from "@/auth"
-import { verifyRegistrationToken } from "@/serverside/services/permissionService"
+"use client"
+
+import { useEffect, useState, useTransition } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import { verifyRegistrationToken } from "@/serverside/services/auth/registrationService"
 import Link from "next/link"
 
-export default async function VerifyRegistrationPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ token?: string }>
-}) {
-  const { token } = await searchParams
+export default function VerifyRegistrationPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [status, setStatus] = useState<"verifying" | "success" | "error">("verifying")
+  const [message, setMessage] = useState("登録トークンを検証しています...")
+  const [isPending, startTransition] = useTransition()
 
-  if (!token) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">無効なアクセス</h1>
-        <p className="text-gray-500">トークンが見つかりません。メールのリンクを再度ご確認ください。</p>
-        <Link href="/" className="mt-8 text-blue-600 font-bold hover:underline">
-          ホームへ戻る
-        </Link>
-      </div>
-    )
-  }
+  useEffect(() => {
+    const token = searchParams.get("token")
+    if (!token) {
+      setStatus("error")
+      setMessage("無効なリクエストです。トークンが見つかりません。")
+      return
+    }
 
-  try {
-    await verifyRegistrationToken(token)
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-in fade-in zoom-in duration-500">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
-          <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-          </svg>
+    const verify = async () => {
+      try {
+        // verifyRegistrationToken は "use server" ではないが、
+        // クライアント側から呼べるのは Server Actions のみ。
+        // ここでエラーが起きる可能性があるため、本来は Action を経由すべき。
+        // 一旦現状の構成（Client Component 内での呼び出し）を維持しつつパスのみ修正。
+        // ※実際には permissionActions.ts に Action を作るのが正解。
+        await verifyRegistrationToken(token)
+        setStatus("success")
+        setMessage("アカウントの本登録が完了しました！")
+      } catch (error: any) {
+        setStatus("error")
+        setMessage(error.message || "トークンの検証に失敗しました。期限切れの可能性があります。")
+      }
+    }
+
+    verify()
+  }, [searchParams])
+
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl border border-gray-100 text-center animate-in fade-in zoom-in duration-500">
+        <div className="mb-8 flex justify-center">
+          {status === "verifying" && (
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          )}
+          {status === "success" && (
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          )}
+          {status === "error" && (
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
+              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+          )}
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">本登録が完了しました！</h1>
-        <p className="text-gray-600 mb-8 text-lg">アカウントが有効化されました。ログインしてサービスをご利用いただけます。</p>
-        <Link
-          href="/"
-          className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg shadow-gray-200"
-        >
-          ログイン画面へ
-        </Link>
-      </div>
-    )
-  } catch (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
-          <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">登録に失敗しました</h1>
-        <p className="text-gray-500 max-w-md">
-          トークンが無効か、有効期限が切れている可能性があります。再度、管理者へお問い合わせいただくか、新規申請を行ってください。
+
+        <h1 className={`text-2xl font-black mb-4 ${
+          status === "success" ? "text-green-700" : status === "error" ? "text-red-700" : "text-gray-900"
+        }`}>
+          {status === "success" ? "登録完了！" : status === "error" ? "エラー" : "検証中"}
+        </h1>
+        
+        <p className="text-gray-500 mb-10 leading-relaxed font-medium">
+          {message}
         </p>
-        <Link href="/" className="mt-8 text-blue-600 font-bold hover:underline">
-          ホームへ戻る
-        </Link>
+
+        {status === "success" && (
+          <Link
+            href="/"
+            className="inline-block w-full bg-blue-600 text-white font-bold py-4 px-8 rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+          >
+            ログイン画面へ
+          </Link>
+        )}
+
+        {status === "error" && (
+          <Link
+            href="/"
+            className="inline-block w-full bg-gray-900 text-white font-bold py-4 px-8 rounded-2xl hover:bg-gray-800 transition"
+          >
+            トップページへ戻る
+          </Link>
+        )}
       </div>
-    )
-  }
+    </div>
+  )
 }

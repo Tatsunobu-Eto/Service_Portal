@@ -1,6 +1,8 @@
 import { auth } from "@/auth"
 import { RequestForm } from "@/frontend/components/RequestForm"
-import { getAllServices, getAllRoles, getUserPendingRequests, getDepartmentTree } from "@/serverside/services/permissionService"
+import { getDepartmentTree } from "@/serverside/services/organization/departmentService"
+import { getUserPendingRequests } from "@/serverside/services/permission/requestService"
+import { getAllRoles, getAllServices } from "@/serverside/services/organization/departmentService"
 import { redirect } from "next/navigation"
 
 export default async function RequestsPage() {

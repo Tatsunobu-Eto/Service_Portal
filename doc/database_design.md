@@ -14,6 +14,9 @@ erDiagram
     Service ||--o{ PermissionRequest : "target of"
     Role ||--o{ UserPermission : "assigned to"
     Role ||--o{ PermissionRequest : "requested as"
+    Department ||--o{ UserPermission : "scoped to"
+    Department ||--o{ PermissionRequest : "requested for"
+    Department ||--o{ Department : "parent of"
 
     User {
         String id PK
@@ -58,6 +61,12 @@ erDiagram
         DateTime updatedAt
     }
 
+    Department {
+        String id PK
+        String name
+        String parentId FK
+    }
+
     Service {
         String id PK
         String name UK
@@ -67,12 +76,6 @@ erDiagram
     Role {
         String id PK
         String name UK
-    }
-
-    Department {
-        String id PK
-        String name
-        String parentId FK
     }
 
     UserPermission {
@@ -93,8 +96,6 @@ erDiagram
         DateTime createdAt
         DateTime updatedAt
     }
->>>>+++ REPLACE
-
 
     VerificationToken {
         String identifier
@@ -130,7 +131,16 @@ erDiagram
 | token | String? | Unique | 本登録用メールトークン |
 | expiresAt | DateTime? | | トークン有効期限 |
 
-### 3. Service (サービス)
+### 3. Department (部署)
+組織構造を定義するマスターデータです。自己参照による階層構造を持ちます。
+
+| カラム名 | 型 | 制約 | 説明 |
+| :--- | :--- | :--- | :--- |
+| id | String | PK, cuid() | 部署ID |
+| name | String | | 部署名 |
+| parentId | String? | FK (Department.id) | 親部署ID (最上位は null) |
+
+### 4. Service (サービス)
 権限管理の対象となる各システムや機能のマスターデータです。
 
 | カラム名 | 型 | 制約 | 説明 |
@@ -139,7 +149,7 @@ erDiagram
 | name | String | Unique | サービス名 (例: 在庫管理, 人事システム) |
 | description | String? | | サービスの説明 |
 
-### 4. Role (ロール)
+### 5. Role (ロール)
 サービス内での役割を定義するマスターデータです。
 
 | カラム名 | 型 | 制約 | 説明 |
@@ -147,7 +157,7 @@ erDiagram
 | id | String | PK, cuid() | ロールID |
 | name | String | Unique | ロール名 (例: 一般, 管理者, システム管理者) |
 
-### 5. UserPermission (ユーザー権限)
+### 6. UserPermission (ユーザー権限)
 ユーザーがどのサービスに対してどのロールを持っているかを管理する中間テーブルです。
 
 | カラム名 | 型 | 制約 | 説明 |
@@ -156,10 +166,9 @@ erDiagram
 | userId | String | FK (User.id) | ユーザーID |
 | serviceId | String | FK (Service.id) | サービスID |
 | roleId | String | FK (Role.id) | ロールID |
+| departmentId | String? | FK (Department.id) | 所属部署ID |
 
-*複合ユニーク制約*: `[userId, serviceId]` により、1ユーザー1サービスにつき1つのロールのみ保持します。
-
-### 6. PermissionRequest (権限利用申請)
+### 7. PermissionRequest (権限利用申請)
 ユーザーからのサービス利用申請を管理します。
 
 | カラム名 | 型 | 制約 | 説明 |
@@ -168,6 +177,7 @@ erDiagram
 | userId | String | FK (User.id) | 申請者ID |
 | serviceId | String | FK (Service.id) | 対象サービスID |
 | roleId | String | FK (Role.id) | 申請ロールID |
+| departmentId | String? | FK (Department.id) | 申請時の所属部署ID |
 | status | String | Default: "PENDING" | 状態 (PENDING, APPROVED, REJECTED) |
 
 ### その他 (NextAuth 標準テーブル)

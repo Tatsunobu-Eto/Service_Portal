@@ -3,14 +3,16 @@
 import { auth } from "@/auth";
 import {
   approveRegistration,
+  createRegistrationRequest,
+  rejectRegistration,
+} from "@/serverside/services/auth/registrationService";
+import {
   approveRequest,
   createPermissionRequest,
-  createRegistrationRequest,
   deleteUser,
   getUserPendingRequests,
-  rejectRegistration,
   rejectRequest,
-} from "@/serverside/services/permissionService";
+} from "@/serverside/services/permission/requestService";
 import { revalidatePath } from "next/cache";
 
 /**

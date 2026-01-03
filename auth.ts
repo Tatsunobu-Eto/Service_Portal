@@ -5,9 +5,11 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 
 import { prisma } from "@/serverside/db/prisma";
-import { getUserPermissions } from "@/serverside/services/permissionService";
+import { getUserPermissions } from "@/serverside/services/permission/permissionService";
 
 /**
+>>>>+++ REPLACE
+
  * NextAuth 設定
  * Google 認証と Credentials (メール/パスワード) 認証をサポート
  */

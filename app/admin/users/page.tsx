@@ -1,6 +1,6 @@
 import { auth } from "@/auth"
 import { AdminUserList } from "@/frontend/components/AdminUserList"
-import { getAllUsers } from "@/serverside/services/permissionService"
+import { getAllUsers } from "@/serverside/services/permission/requestService"
 import { redirect } from "next/navigation"
 
 export default async function AdminUsersPage() {
